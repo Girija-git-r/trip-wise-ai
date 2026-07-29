@@ -8,7 +8,14 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
+/**
+ * Profile row mirroring a Supabase Auth user. The id is NOT generated here —
+ * it is the UUID Supabase Auth assigned when the user signed up (the JWT's
+ * "sub" claim). This row is created/kept in sync on first authenticated
+ * request by {@link com.tripwise.ai.service.UserService#syncFromToken}.
+ */
 @Entity
 @Table(name = "users")
 @Getter
@@ -19,8 +26,8 @@ import java.time.LocalDateTime;
 public class User {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(columnDefinition = "uuid")
+    private UUID id;
 
     @Column(nullable = false, length = 120)
     private String name;
@@ -28,14 +35,13 @@ public class User {
     @Column(nullable = false, unique = true, length = 180)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
     }
 }

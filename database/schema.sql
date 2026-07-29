@@ -1,9 +1,17 @@
 -- ============================================================
 -- TripWise AI - Smart Travel Planner
--- PostgreSQL schema
--- Note: Hibernate (spring.jpa.hibernate.ddl-auto=update) will also
--- create/update these tables automatically on backend startup.
--- This script is provided for manual setup / review.
+-- PostgreSQL schema (Supabase-hosted)
+--
+-- Auth is entirely handled by Supabase Auth (auth.users) — this schema only
+-- adds a `users` profile table keyed by that same UUID, plus the app's own
+-- trip data. Run this in the Supabase SQL Editor (or let Hibernate's
+-- ddl-auto=update create it on first backend boot against the same DB).
+--
+-- Note: this app's backend connects with the Postgres role from Supabase's
+-- connection string (not the anon/public API), so Row Level Security is not
+-- required for it to function — the Spring Boot service is the only thing
+-- that touches these tables directly. RLS is worth adding later only if you
+-- plan to query these tables from the frontend via supabase-js directly.
 --
 -- If you already had a trips table from before the ai_generated column
 -- existed, Hibernate's auto-update will fail to add it (Postgres refuses
@@ -11,20 +19,16 @@
 --   ALTER TABLE trips ADD COLUMN IF NOT EXISTS ai_generated BOOLEAN NOT NULL DEFAULT FALSE;
 -- ============================================================
 
-CREATE DATABASE tripwise_ai;
--- \c tripwise_ai
-
 CREATE TABLE IF NOT EXISTS users (
-    id              BIGSERIAL PRIMARY KEY,
+    id              UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     name            VARCHAR(120) NOT NULL,
     email           VARCHAR(180) NOT NULL UNIQUE,
-    password_hash   VARCHAR(255) NOT NULL,
     created_at      TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS trips (
     id              BIGSERIAL PRIMARY KEY,
-    user_id         BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     destination     VARCHAR(160) NOT NULL,
     days            INTEGER NOT NULL CHECK (days > 0),
     budget          DOUBLE PRECISION NOT NULL CHECK (budget > 0),

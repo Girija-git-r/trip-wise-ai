@@ -1,11 +1,10 @@
 package com.tripwise.ai.service;
 
-import com.tripwise.ai.dto.auth.UpdateProfileRequest;
 import com.tripwise.ai.dto.auth.UserResponse;
 import com.tripwise.ai.entity.User;
-import com.tripwise.ai.exception.DuplicateEmailException;
 import com.tripwise.ai.exception.ResourceNotFoundException;
 import com.tripwise.ai.repository.UserRepository;
+import com.tripwise.ai.security.SupabaseUserClaims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -18,8 +17,8 @@ public class UserService {
     private final UserRepository userRepository;
 
     public User getCurrentUser(Authentication authentication) {
-        String email = authentication.getName();
-        return userRepository.findByEmail(email)
+        SupabaseUserClaims claims = (SupabaseUserClaims) authentication.getPrincipal();
+        return userRepository.findById(claims.id())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
@@ -27,24 +26,41 @@ public class UserService {
         return toResponse(getCurrentUser(authentication));
     }
 
+    /**
+     * Keeps the local profile row in step with Supabase Auth. Supabase is the
+     * source of truth for identity — name/email edits happen there (via
+     * supabase-js on the frontend); this just mirrors the latest claims.
+     */
     @Transactional
-    public UserResponse updateProfile(Authentication authentication, UpdateProfileRequest request) {
-        User user = getCurrentUser(authentication);
+    public void syncFromToken(SupabaseUserClaims claims) {
+        User user = userRepository.findById(claims.id()).orElse(null);
 
-        String newEmail = request.email().toLowerCase().trim();
-        if (!newEmail.equals(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
-            throw new DuplicateEmailException("An account with this email already exists");
+        if (user == null) {
+            userRepository.save(User.builder()
+                    .id(claims.id())
+                    .name(claims.name())
+                    .email(claims.email())
+                    .build());
+            return;
         }
 
-        user.setName(request.name());
-        user.setEmail(newEmail);
-        User saved = userRepository.save(user);
-        return toResponse(saved);
+        boolean changed = false;
+        if (!user.getName().equals(claims.name())) {
+            user.setName(claims.name());
+            changed = true;
+        }
+        if (!user.getEmail().equals(claims.email())) {
+            user.setEmail(claims.email());
+            changed = true;
+        }
+        if (changed) {
+            userRepository.save(user);
+        }
     }
 
     private UserResponse toResponse(User user) {
         return UserResponse.builder()
-                .id(user.getId())
+                .id(user.getId().toString())
                 .name(user.getName())
                 .email(user.getEmail())
                 .createdAt(user.getCreatedAt())

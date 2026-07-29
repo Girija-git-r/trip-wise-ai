@@ -1,56 +1,65 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { loginUser, registerUser } from '../services/authService';
+import { supabase } from '../services/supabaseClient';
 
 const AuthContext = createContext(null);
 
+function toAppUser(supabaseUser) {
+  if (!supabaseUser) return null;
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email,
+    name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+  };
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('tripwise_user');
-    const token = localStorage.getItem('tripwise_token');
-    if (storedUser && token) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
+
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+
+    return () => subscription.subscription.unsubscribe();
   }, []);
 
-  function persistSession(authResponse) {
-    const { token, userId, name, email } = authResponse;
-    const sessionUser = { id: userId, name, email };
-    localStorage.setItem('tripwise_token', token);
-    localStorage.setItem('tripwise_user', JSON.stringify(sessionUser));
-    setUser(sessionUser);
-    return sessionUser;
+  async function login({ email, password }) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return toAppUser(data.user);
   }
 
-  async function login(credentials) {
-    const response = await loginUser(credentials);
-    return persistSession(response);
-  }
-
-  async function register(details) {
-    const response = await registerUser(details);
-    return persistSession(response);
-  }
-
-  function logout() {
-    localStorage.removeItem('tripwise_token');
-    localStorage.removeItem('tripwise_user');
-    setUser(null);
-  }
-
-  function updateStoredUser(updatedUser) {
-    setUser((prev) => {
-      const next = { ...prev, ...updatedUser };
-      localStorage.setItem('tripwise_user', JSON.stringify(next));
-      return next;
+  async function register({ name, email, password }) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { name } },
     });
+    if (error) throw error;
+    // If email confirmation is required, Supabase returns a user but no session yet.
+    return { user: toAppUser(data.user), needsEmailConfirmation: !data.session };
   }
+
+  async function logout() {
+    await supabase.auth.signOut();
+  }
+
+  async function updateName(name) {
+    const { data, error } = await supabase.auth.updateUser({ data: { name } });
+    if (error) throw error;
+    return toAppUser(data.user);
+  }
+
+  const user = toAppUser(session?.user);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, updateStoredUser, isAuthenticated: !!user }),
+    () => ({ user, loading, login, register, logout, updateName, isAuthenticated: !!user }),
     [user, loading]
   );
 

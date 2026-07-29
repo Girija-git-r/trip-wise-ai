@@ -1,20 +1,21 @@
 -- ============================================================
 -- TripWise AI - Sample seed data
--- Run after schema.sql (or after the backend has auto-created tables).
 --
--- Seed user login credentials:
---   email:    demo@tripwise.ai
---   password: Password123!
--- (the password_hash below is a real BCrypt hash of "Password123!")
+-- User accounts are created through Supabase Auth (sign up in the app, or
+-- Supabase Dashboard -> Authentication -> Users -> Add user), NOT by
+-- inserting rows here — Supabase owns password hashing/storage in its own
+-- `auth.users` table, and this app mirrors the profile into `users`
+-- automatically the first time that user calls the API
+-- (see UserService.syncFromToken).
+--
+-- To seed a sample trip for a user you've already created:
+--   1. Sign up in the app (or Supabase dashboard) and log in at least once,
+--      so `users` has a row for them.
+--   2. Replace 'demo@tripwise.ai' below with that user's real email.
+--   3. Run this file.
 -- ============================================================
 
-INSERT INTO users (name, email, password_hash, created_at)
-VALUES ('Demo User', 'demo@tripwise.ai',
-        '$2b$10$Jjf7AvyodDyJe.mxVKl3jeur.IpvEpktqQW3QgNlhRONqDG.dJJ.a',
-        NOW())
-ON CONFLICT (email) DO NOTHING;
-
--- Sample trip for the demo user (rule-based, not AI-generated)
+-- Sample trip for the seeded user (rule-based, not AI-generated)
 INSERT INTO trips (user_id, destination, days, budget, travel_type, interests, start_date, saved, ai_generated, created_at)
 SELECT id, 'Bali, Indonesia', 5, 90000, 'Leisure',
        '["nature", "relaxation", "food"]'::jsonb,

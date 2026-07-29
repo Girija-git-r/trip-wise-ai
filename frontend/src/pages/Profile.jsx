@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { getCurrentUser, updateProfile } from '../services/authService';
+import { getCurrentUser } from '../services/authService';
 import '../styles/Profile.css';
 
 export default function Profile() {
-  const { updateStoredUser } = useAuth();
+  const { user, updateName } = useAuth();
   const { showToast } = useToast();
 
-  const [form, setForm] = useState({ name: '', email: '' });
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [createdAt, setCreatedAt] = useState(null);
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
@@ -18,7 +19,8 @@ export default function Profile() {
   useEffect(() => {
     getCurrentUser()
       .then((data) => {
-        setForm({ name: data.name, email: data.email });
+        setName(data.name);
+        setEmail(data.email);
         setCreatedAt(data.createdAt);
       })
       .finally(() => setLoading(false));
@@ -26,9 +28,7 @@ export default function Profile() {
 
   function validate() {
     const next = {};
-    if (!form.name.trim()) next.name = 'Name is required';
-    if (!form.email.trim()) next.email = 'Email is required';
-    else if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = 'Enter a valid email';
+    if (!name.trim()) next.name = 'Name is required';
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -40,11 +40,10 @@ export default function Profile() {
 
     setSubmitting(true);
     try {
-      const updated = await updateProfile(form);
-      updateStoredUser({ name: updated.name, email: updated.email });
+      await updateName(name);
       showToast('Profile updated successfully', 'success');
     } catch (err) {
-      setServerError(err.response?.data?.message || 'Could not update your profile');
+      setServerError(err.message || 'Could not update your profile');
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +53,7 @@ export default function Profile() {
     return <div className="empty-state"><div className="spinner spinner-dark" /></div>;
   }
 
-  const initials = form.name
+  const initials = name
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
@@ -77,22 +76,16 @@ export default function Profile() {
               id="name"
               type="text"
               className={`form-input ${errors.name ? 'has-error' : ''}`}
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
             {errors.name && <div className="form-error">{errors.name}</div>}
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              className={`form-input ${errors.email ? 'has-error' : ''}`}
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
-            {errors.email && <div className="form-error">{errors.email}</div>}
+            <input id="email" type="email" className="form-input" value={email} disabled />
+            <div className="form-hint">Managed by your Supabase account and can't be changed here.</div>
           </div>
 
           {createdAt && (

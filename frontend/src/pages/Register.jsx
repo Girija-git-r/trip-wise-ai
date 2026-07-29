@@ -11,6 +11,7 @@ export default function Register() {
   const [errors, setErrors] = useState({});
   const [serverError, setServerError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   function validate() {
     const next = {};
@@ -31,13 +32,39 @@ export default function Register() {
 
     setSubmitting(true);
     try {
-      await register({ name: form.name, email: form.email, password: form.password });
-      navigate('/dashboard');
+      const { needsEmailConfirmation } = await register({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      });
+      if (needsEmailConfirmation) {
+        setConfirmationSent(true);
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
-      setServerError(err.response?.data?.message || 'Could not create your account');
+      setServerError(err.message || 'Could not create your account');
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (confirmationSent) {
+    return (
+      <div className="auth-page">
+        <div className="card auth-card fade-in">
+          <div className="auth-header">
+            <div className="auth-icon">📩</div>
+            <h1>Check your inbox</h1>
+            <p>
+              We sent a confirmation link to <strong>{form.email}</strong>. Click it to activate
+              your account, then come back and log in.
+            </p>
+          </div>
+          <Link to="/login" className="btn btn-primary btn-block">Back to Login</Link>
+        </div>
+      </div>
+    );
   }
 
   return (
