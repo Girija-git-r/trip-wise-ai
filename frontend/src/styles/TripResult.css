@@ -1,0 +1,152 @@
+.trip-result-page {
+  padding: 32px 24px 60px;
+}
+
+.trip-result-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.trip-result-header h1 {
+  margin-bottom: 10px;
+}
+.trip-result-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.trip-result-title-row h1 {
+  margin-bottom: 0;
+}
+.ai-badge-standard {
+  background: var(--color-text-muted);
+  box-shadow: none;
+}
+.trip-result-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.trip-result-interests {
+  margin: 12px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.trip-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+.trip-tab {
+  background: none;
+  border: none;
+  padding: 12px 6px;
+  margin-right: 16px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.trip-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.itinerary-list, .packing-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.packing-progress {
+  margin-bottom: 16px;
+}
+.packing-progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 10px;
+}
+
+.itinerary-day {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.itinerary-day:hover {
+  box-shadow: var(--shadow-md);
+}
+.itinerary-day h3 {
+  font-size: 1.05rem;
+  margin-bottom: 14px;
+}
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.activity-item .badge {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.packing-category h3 {
+  font-size: 1rem;
+  margin-bottom: 12px;
+}
+.packing-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.packing-item label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.94rem;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+.packing-item label:hover {
+  background: rgba(14, 165, 233, 0.05);
+}
+.packing-item input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-secondary);
+  cursor: pointer;
+}
+.packing-item span {
+  transition: color 0.15s ease;
+}
+.packing-item span.checked {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
+.packing-tip {
+  margin: 4px 0 0 28px;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
