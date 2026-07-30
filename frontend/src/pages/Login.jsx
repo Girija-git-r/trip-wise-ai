@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import '../styles/AuthPages.css';
 
@@ -79,10 +79,6 @@ export default function Login() {
             {submitting ? <span className="spinner" /> : 'Log In →'}
           </button>
         </form>
-
-        <div className="auth-footer">
-          Don&apos;t have an account? <Link to="/register">Create one</Link>
-        </div>
       </div>
     </div>
   );

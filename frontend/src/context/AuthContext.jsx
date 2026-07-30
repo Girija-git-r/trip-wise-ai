@@ -35,17 +35,6 @@ export function AuthProvider({ children }) {
     return toAppUser(data.user);
   }
 
-  async function register({ name, email, password }) {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name } },
-    });
-    if (error) throw error;
-    // If email confirmation is required, Supabase returns a user but no session yet.
-    return { user: toAppUser(data.user), needsEmailConfirmation: !data.session };
-  }
-
   async function logout() {
     await supabase.auth.signOut();
   }
@@ -59,7 +48,7 @@ export function AuthProvider({ children }) {
   const user = toAppUser(session?.user);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, updateName, isAuthenticated: !!user }),
+    () => ({ user, loading, login, logout, updateName, isAuthenticated: !!user }),
     [user, loading]
   );
 

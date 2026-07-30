@@ -78,8 +78,7 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="navbar-user">
-              <Link to="/login" className="btn btn-outline">Login</Link>
-              <Link to="/register" className="btn btn-primary">Get Started</Link>
+              <Link to="/login" className="btn btn-primary">Login</Link>
             </div>
           )}
         </nav>
