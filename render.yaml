@@ -8,13 +8,20 @@ services:
     startCommand: java -jar target/tripwise-ai-1.0.0.jar
     healthCheckPath: /api/health
     envVars:
+      # Supabase connection string (Transaction pooler, port 6543). MUST include
+      # both sslmode=require AND prepareThreshold=0 — Supabase's pooler is
+      # PgBouncer in transaction mode, which breaks the JDBC driver's default
+      # server-side prepared statements ("prepared statement already exists"
+      # errors under load without this).
       - key: SPRING_DATASOURCE_URL
         sync: false
       - key: SPRING_DATASOURCE_USERNAME
         sync: false
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
-      - key: SUPABASE_JWT_SECRET
+      # Same Project URL used by the frontend, e.g. https://xxxx.supabase.co
+      # (used to derive the JWKS endpoint — no shared secret needed)
+      - key: SUPABASE_URL
         sync: false
       - key: GEMINI_API_KEY
         sync: false

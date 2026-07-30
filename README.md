@@ -43,10 +43,12 @@ TripWise-AI/
 One project covers both Auth and the database, for local dev and production alike.
 
 1. Go to **https://supabase.com/dashboard** → **New project**. Note the database password you set.
-2. Once it's provisioned, collect four values you'll need repeatedly below:
+2. Once it's provisioned, collect three values you'll need repeatedly below:
    - **Project URL** and **anon public key** — Project Settings → API
-   - **JWT Secret** — Project Settings → API → JWT Settings
    - **Connection string (JDBC, Transaction pooler)** — Project Settings → Database → Connection string
+   (There's no JWT secret to copy — the backend verifies tokens against Supabase's public
+   JWKS endpoint, which works whether the project uses the legacy shared-secret or the
+   newer per-project asymmetric signing keys.)
 3. In the SQL Editor, run `database/schema.sql` to create the `users`/`trips`/... tables.
    (The backend can also auto-create them via Hibernate on first boot — either works.)
 4. **Email confirmation:** by default Supabase requires users to confirm their email before
@@ -59,12 +61,17 @@ Requires JDK 17+ and Maven 3.8+.
 
 1. Set these environment variables (get the values from Section 1):
    ```bash
-   export SPRING_DATASOURCE_URL="jdbc:postgresql://<supabase-pooler-host>:6543/postgres?sslmode=require"
+   export SPRING_DATASOURCE_URL="jdbc:postgresql://<supabase-pooler-host>:6543/postgres?sslmode=require&prepareThreshold=0"
    export SPRING_DATASOURCE_USERNAME="postgres.<project-ref>"
    export SPRING_DATASOURCE_PASSWORD="your-db-password"
-   export SUPABASE_JWT_SECRET="your-jwt-secret"
+   export SUPABASE_URL="https://<project-ref>.supabase.co"
    export CORS_ALLOWED_ORIGINS="http://localhost:5173"
    ```
+   Both query params on the datasource URL matter: `sslmode=require` because Supabase
+   requires TLS, and `prepareThreshold=0` because Supabase's Transaction pooler is
+   PgBouncer in transaction mode, which is incompatible with the JDBC driver's default
+   server-side prepared statements — without this you'll hit intermittent
+   `prepared statement "S_n" already exists` errors under concurrent requests.
 2. **(Optional but recommended) Enable real AI generation** — see [Section 2a](#2a-ai-setup-google-gemini-free-tier)
    below. Without a key, trip planning still works end-to-end using the built-in
    rule-based generator.
@@ -165,10 +172,10 @@ You already have the Supabase project from Section 1. Two more services to set u
 3. In the service's **Environment** tab, set:
    | Key | Value |
    |---|---|
-   | `SPRING_DATASOURCE_URL` | Supabase JDBC connection string (Transaction pooler, port 6543, `?sslmode=require`) |
+   | `SPRING_DATASOURCE_URL` | Supabase JDBC connection string (Transaction pooler, port 6543, `?sslmode=require&prepareThreshold=0` — both params required, see Section 2) |
    | `SPRING_DATASOURCE_USERNAME` | from the same connection string |
    | `SPRING_DATASOURCE_PASSWORD` | your Supabase DB password |
-   | `SUPABASE_JWT_SECRET` | Supabase → Project Settings → API → JWT Settings |
+   | `SUPABASE_URL` | your Supabase Project URL, e.g. `https://xxxx.supabase.co` |
    | `GEMINI_API_KEY` | your Gemini key (optional) |
    | `CORS_ALLOWED_ORIGINS` | your Vercel URL, e.g. `https://trip-wise-ai.vercel.app` (add after Section 4b) |
    Render sets `PORT` itself — the app already reads it (`server.port=${PORT:8080}`).
@@ -196,9 +203,15 @@ You already have the Supabase project from Section 1. Two more services to set u
 - **Auth flow:** Registration and login happen entirely against Supabase Auth via
   `@supabase/supabase-js` on the frontend (`AuthContext.jsx`) — the backend never
   receives a password. Every API request attaches the current Supabase session's
-  `access_token` as a Bearer token (`src/services/api.js`); `JwtAuthenticationFilter`
-  verifies it against `SUPABASE_JWT_SECRET` (HS256) and rejects anything invalid/expired.
-  A 401 response signs the frontend out and redirects to `/login`.
+  `access_token` as a Bearer token (`src/services/api.js`). The backend verifies it
+  as a standard OAuth2 resource server would: against Supabase's public JWKS endpoint
+  (`{SUPABASE_URL}/auth/v1/.well-known/jwks.json`), configured explicitly in
+  `SecurityConfig` to accept both ES256 and RS256 (Spring Boot's property-only
+  auto-configuration assumes RS256 and silently rejects ES256, which is what newer
+  Supabase projects use — see the comment on the `JwtDecoder` bean). A verified
+  token's claims are converted into the app's principal by
+  `SupabaseJwtAuthenticationConverter`. A 401 response signs the frontend out and
+  redirects to `/login`.
 - **Profile sync:** On every authenticated request, `UserService.syncFromToken` upserts
   a row in our own `users` table from the token's claims (id/email/name), so there's no
   separate "create profile" step after signup. Supabase is the single source of truth —
