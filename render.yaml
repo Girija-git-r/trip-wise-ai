@@ -1,11 +1,11 @@
 services:
   - type: web
     name: tripwise-ai-backend
-    runtime: java
+    runtime: docker
     plan: free
     rootDir: backend
-    buildCommand: mvn -q -DskipTests clean package
-    startCommand: java -jar target/tripwise-ai-1.0.0.jar
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /api/health
     envVars:
       # Supabase connection string (Transaction pooler, port 6543). MUST include
